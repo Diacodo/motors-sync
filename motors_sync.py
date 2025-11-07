@@ -817,11 +817,12 @@ class MotorsSync:
     def homing(self):
         # Homing and going to center
         now = self.reactor.monotonic()
-        axes, confs = zip(*self.motion.items())
-        if ''.join(axes) not in self.kin.get_status(now)['homed_axes']:
-            self.gsend(f"G28 {' '.join(axes)}")
-        center_pos = ' '.join(f'{a}{c.limits[2]}' for a, c in zip(axes, confs))
-        self.gsend(f"G0 {center_pos} F{self.travel_speed * 60}")
+        axes_names = list(self.motion.keys())
+        homed_axes = self.kin.get_status(now)['homed_axes']
+        if any(a not in homed_axes for a in axes_names):
+            self.gsend(f"G28 {' '.join(axes_names)}")
+        center_pos = (f'{a}{c.limits[2]}' for a, c in self.motion.items())
+        self.gsend(f"G0 {' '.join(center_pos)} F{self.travel_speed * 60}")
         self.toolhead.dwell(MOTOR_STALL_TIME)
         self.toolhead.flush_step_generation()
 
